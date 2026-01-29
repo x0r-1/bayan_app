@@ -9,15 +9,16 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-    # الطابور الصارم: يمنع تداخل الأكشنات نهائياً
+    # ميزة الطابور: بتخلي الفيديوهات تدخل واحد ورا التاني بالترتيب
     concurrency: 
       group: update-json
-      cancel-in-progress: false # مهم جداً تكون false عشان ما يقفلش اللي قبله
+      cancel-in-progress: false # دي أهم حاجة عشان ما يكنسلش الفيديوهات اللي في الانتظار
 
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -35,11 +36,10 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           
-          # محاولة إضافة الملفات وعمل commit
           git add videos.json
           git commit -m "Auto-update videos.json: ${{ github.event.client_payload.title }}" || exit 0
           
-          # استراتيجية الهروب من الـ Conflict:
-          # بنجبر الأكشن إنه ياخد نسخة السيرفر الأخيرة دائماً قبل الرفع
-          git pull --rebase -X theirs origin main
-          git push
+          # استراتيجية قوية جداً: يحاول يرفع 5 مرات لو حصل زحمة
+          for i in {1..5}; do
+            git pull --rebase -X theirs origin main && git push && break || sleep 5;
+          done
