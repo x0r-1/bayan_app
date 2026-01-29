@@ -1,7 +1,10 @@
 name: Update Video JSON
 on:
   repository_dispatch:
-    types: [new_video] # نفس الاسم اللي في الـ Worker
+    types: [new_video]
+
+permissions:
+  contents: write
 
 jobs:
   update:
