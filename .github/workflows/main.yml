@@ -9,16 +9,15 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-    # ميزة الطابور: بتخلي الفيديوهات تدخل واحد ورا التاني بالترتيب
+    # ميزة الطابور الصارم عشان يخلص الأول وبعدين يبدأ التاني
     concurrency: 
       group: update-json
-      cancel-in-progress: false # دي أهم حاجة عشان ما يكنسلش الفيديوهات اللي في الانتظار
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -37,9 +36,10 @@ jobs:
           git config --global user.email 'action@github.com'
           
           git add videos.json
+          # إذا لم يوجد تغيير، لا يتوقف الأكشن
           git commit -m "Auto-update videos.json: ${{ github.event.client_payload.title }}" || exit 0
           
-          # استراتيجية قوية جداً: يحاول يرفع 5 مرات لو حصل زحمة
+          # محاولة الرفع مع إعادة المحاولة في حال وجود زحمة سيرفرات
           for i in {1..5}; do
-            git pull --rebase -X theirs origin main && git push && break || sleep 5;
+            git pull --rebase -X theirs origin main && git push && break || sleep 10;
           done
