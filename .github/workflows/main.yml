@@ -9,11 +9,18 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
+    # ميزة الطابور: تمنع تشغيل أكثر من أكشن في نفس الوقت لتفادي التعارض
+    concurrency: 
+      group: update-json
+      cancel-in-progress: false
+
     steps:
       - uses: actions/checkout@v3
-      
+        with:
+          fetch-depth: 0 # لجلب كامل التاريخ لنجاح عملية الدمج
+
       - name: Set up Python
-        uses: actions/setup-python@v4  # التعديل هنا: أضفنا actions/ قبل اسم الأداة
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
           
@@ -28,5 +35,9 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           git add videos.json
-          git commit -m "Auto-update videos.json: ${{ github.event.client_payload.title }}"
+          # محاولة عمل commit، ولو لم يوجد تغيير لا يتوقف الأكشن
+          git commit -m "Auto-update videos.json: ${{ github.event.client_payload.title }}" || exit 0
+          
+          # جلب آخر التحديثات ودمجها قبل الرفع لمنع فشل الـ push
+          git pull --rebase origin main
           git push
