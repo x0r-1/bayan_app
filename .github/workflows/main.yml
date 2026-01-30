@@ -6,62 +6,44 @@ on:
 permissions:
   contents: write
 
+# الطابور الحديدي: ممنوع أكشن يبدأ غير لما اللي قبله يخلص ويقفل الـ Commit
+concurrency:
+  group: athar-lock
+  cancel-in-progress: false
+
 jobs:
   process:
     runs-on: ubuntu-latest
-    # ميزة الـ Concurrency هنا هي "السر"
-    # بتخلي الأكشنز تقف في طابور (Queue) وتشتغل واحد ورا التاني بالترتيب
-    concurrency: 
-      group: athar-db-update
-      cancel-in-progress: false 
-
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: Execute Logic
-        env:
-          FILE_ID: ${{ github.event.client_payload.file_id }}
-          VIDEO_TITLE: ${{ github.event.client_payload.video_title }}
-          VIDEO_ID: ${{ github.event.client_payload.video_id }}
-          ACTION: ${{ github.event.client_payload.action }}
-          # استخدمنا github.event.action عشان يقرأ نوع الـ Dispatch صح
-          EVENT_TYPE: ${{ github.event.action }}
+      - name: Sync and Execute
         run: |
-          if [ "$EVENT_TYPE" == "new_video_upload" ]; then
-            echo "🚀 جاري إضافة فيديو جديد..."
-            python update_json.py
-          elif [ "$EVENT_TYPE" == "update_like" ]; then
-            echo "❤️ جاري تحديث لايكات الفيديو رقم $VIDEO_ID..."
-            python manage_likes.py "$VIDEO_ID" "$ACTION"
-          else
-            echo "❓ نوع الحدث غير معروف: $EVENT_TYPE"
-          fi
-
-      - name: Save Changes with Retry Logic
-        run: |
+          # تأكيد مزامنة الملفات قبل البدء
           git config --global user.name 'Athar Bot'
           git config --global user.email 'bot@athar.com'
+          git pull origin main
+
+          # تنفيذ الكود
+          EVENT_TYPE="${{ github.event.action }}"
+          if [ "$EVENT_TYPE" == "new_video_upload" ]; then
+            python update_json.py
+          elif [ "$EVENT_TYPE" == "update_like" ]; then
+            python manage_likes.py "${{ github.event.client_payload.video_id }}" "${{ github.event.client_payload.action }}"
+          fi
+
+          # حفظ التغييرات مع محاولة الرفع المتكرر
+          git add videos.json
+          git commit -m "Update: $EVENT_TYPE" || exit 0
           
-          # محاولة الحفظ والرفع بذكاء
-          for i in {1..10}; do
-            git add videos.json
-            # لو مفيش تغييرات حقيقية اخرج بسلام
-            git commit -m "Automated Update: ${{ github.event.action }}" || exit 0
-            
-            # السحب (Rebase) ثم الرفع
-            if git pull --rebase -X theirs origin main && git push; then
-              echo "✅ تم التحديث بنجاح!"
-              exit 0
-            else
-              echo "⚠️ تعارض في البيانات، محاولة جديدة بعد 5 ثواني..."
-              sleep 5
-            fi
+          for i in {1..5}; do
+            git pull --rebase origin main
+            git push && break || sleep 5
           done
