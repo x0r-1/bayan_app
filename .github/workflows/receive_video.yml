@@ -1,33 +1,22 @@
-name: Athar Video Receiver
-on:
-  repository_dispatch:
-    types: [new_video_upload]
-
-permissions:
-  contents: write
-
-jobs:
-  receive:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Create Temp Video File
+- name: Create Temp Entry
         run: |
           mkdir -p queue
-          # بنعمل ملف JSON صغير لكل فيديو باسم الـ file_id عشان ميتكررش
-          cat <<EOF > queue/${{ github.event.client_payload.file_id }}.json
-          {
-            "title": "${{ github.event.client_payload.video_title }}",
-            "file_id": "${{ github.event.client_payload.file_id }}",
-            "timestamp": $(date +%s)
-          }
-          EOF
-      - name: Commit to Queue
-        run: |
-          git config --global user.name 'Athar Receiver'
-          git config --global user.email 'bot@athar.com'
-          git add queue/
-          git commit -m "New video in queue: ${{ github.event.client_payload.file_id }}"
-          # بنعمل ريبايز عشان لو كذا فيديو وصلوا ورا بعض جيت هاب يقبلهم كلهم
-          git pull --rebase origin main
-          git push
+          EVENT_TYPE="${{ github.event.action }}"
+          if [ "$EVENT_TYPE" == "new_video_upload" ]; then
+            cat <<EOF > queue/vid_${{ github.event.client_payload.file_id }}.json
+            {
+              "title": "${{ github.event.client_payload.video_title }}",
+              "file_id": "${{ github.event.client_payload.file_id }}",
+              "timestamp": $(date +%s)
+            }
+            EOF
+          elif [ "$EVENT_TYPE" == "update_like" ]; then
+            # بنعمل نوتة لايك باسم فريد (تايم ستامب + راندوم) عشان لو كذا لايك وصلوا مع بعض
+            cat <<EOF > queue/like_${{ github.event.client_payload.video_id }}_$RANDOM.json
+            {
+              "video_id": "${{ github.event.client_payload.video_id }}",
+              "action": "${{ github.event.client_payload.action }}",
+              "timestamp": $(date +%s)
+            }
+            EOF
+          fi
