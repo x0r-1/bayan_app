@@ -1,50 +1,28 @@
 import json
 import os
-import random
+import time
 
-def update_json():
+def create_temp_video():
     file_id = os.getenv('FILE_ID')
     telegram_caption = os.getenv('VIDEO_TITLE')
     if not file_id: return
 
-    file_path = 'videos.json'
-    
-    # 1. قراءة أحدث نسخة من الملف "حالاً"
-    videos = []
-    if os.path.exists(file_path):
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                videos = json.load(f)
-        except: videos = []
-
-    full_url = f"https://yellow-wind-75bb.ahhaga123456789.workers.dev/?file_id={file_id}"
-    
-    # منع التكرار
-    if any(v.get('url') == full_url for v in videos):
-        return
-
-    # حساب الـ ID بناءً على الموجود فعلياً
-    max_id = 0
-    if videos:
-        ids = [int(v['id']) for v in videos if str(v['id']).isdigit()]
-        max_id = max(ids) if ids else len(videos)
-    
-    new_id = str(max_id + 1)
-    final_title = telegram_caption if (telegram_caption and telegram_caption.strip()) else "اذكر الله"
-
+    # إنشاء بيانات الفيديو الجديد
+    # هنستخدم الـ file_id كـ ID مؤقت عشان نضمن عدم التكرار
     new_video = {
-        "id": new_id,
-        "title": final_title,
-        "url": full_url,
-        "likes": 0
+        "temp_id": file_id, 
+        "title": telegram_caption if (telegram_caption and telegram_caption.strip()) else "اذكر الله",
+        "url": f"https://yellow-wind-75bb.ahhaga123456789.workers.dev/?file_id={file_id}",
+        "likes": 0,
+        "timestamp": time.time()
     }
 
-    # إضافة الفيديو في أول القائمة
-    videos.insert(0, new_video)
+    # إنشاء مجلد للملفات المؤقتة لو مش موجود
+    os.makedirs('temp_videos', exist_ok=True)
 
-    # الحفظ
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(videos, f, ensure_ascii=False, indent=2)
+    # حفظ الفيديو في ملف خاص به
+    with open(f'temp_videos/{file_id}.json', 'w', encoding='utf-8') as f:
+        json.dump(new_video, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
-    update_json()
+    create_temp_video()
