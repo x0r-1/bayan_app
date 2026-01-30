@@ -56,9 +56,9 @@ def merge_all():
         f_id = entry.get('file_id')
         url = f"https://yellow-wind-75bb.ahhaga123456789.workers.dev/?file_id={f_id}"
         
-        # التأكد من عدم التكرار
-        if any(v.get('url') == url for v in videos):
-            continue
+        # # التأكد من عدم التكرار
+        # if any(v.get('url') == url for v in videos):
+        #     continue
         
         # حساب الـ ID الجديد
         try:
