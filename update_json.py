@@ -7,8 +7,6 @@ def create_temp_video():
     telegram_caption = os.getenv('VIDEO_TITLE')
     if not file_id: return
 
-    # إنشاء بيانات الفيديو الجديد
-    # هنستخدم الـ file_id كـ ID مؤقت عشان نضمن عدم التكرار
     new_video = {
         "temp_id": file_id, 
         "title": telegram_caption if (telegram_caption and telegram_caption.strip()) else "اذكر الله",
@@ -17,10 +15,8 @@ def create_temp_video():
         "timestamp": time.time()
     }
 
-    # إنشاء مجلد للملفات المؤقتة لو مش موجود
     os.makedirs('temp_videos', exist_ok=True)
 
-    # حفظ الفيديو في ملف خاص به
     with open(f'temp_videos/{file_id}.json', 'w', encoding='utf-8') as f:
         json.dump(new_video, f, ensure_ascii=False, indent=2)
 
