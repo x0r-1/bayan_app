@@ -1,8 +1,8 @@
 name: Athar Database Merger
 on:
   schedule:
-    - cron: '*/5 * * * *' # هيشتغل أوتوماتيك كل 5 دقائق
-  workflow_dispatch: # زرار يدوي لو حبيت تدمجهم أنت فوراً
+    - cron: '*/5 * * * *' 
+  workflow_dispatch: 
 
 permissions:
   contents: write
@@ -24,6 +24,7 @@ jobs:
         run: |
           git config --global user.name 'Athar Merger'
           git config --global user.email 'bot@athar.com'
-          git add videos.json
-          git commit -m "Periodic Merge: Updated videos.json" || exit 0
+          # التعديل هنا: بنضيف videos.json وبنأكد حذف مجلد queue
+          git add videos.json queue/ 
+          git commit -m "Periodic Merge: Updated videos.json and likes" || exit 0
           git push
