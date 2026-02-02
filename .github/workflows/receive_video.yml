@@ -21,12 +21,20 @@ jobs:
           TIMESTAMP=$(date +%s)
           
           if [ "$EVENT_TYPE" == "new_video_upload" ]; then
-            # كتابة بيانات الفيديو الجديد في سطر واحد لتجنب أخطاء EOF
-            echo "{\"file_id\": \"${{ github.event.client_payload.file_id }}\", \"video_title\": \"${{ github.event.client_payload.video_title }}\", \"timestamp\": $TIMESTAMP}" > "queue/vid_${{ github.event.client_payload.file_id }}.json"
+            # استخدام متغيرات البيئة (Env Vars) هو أأمن طريقة للتعامل مع النصوص اللي فيها رموز " أو '
+            cat <<EOF > "queue/vid_${{ github.event.client_payload.file_id }}.json"
+            {
+              "file_id": "${{ github.event.client_payload.file_id }}",
+              "video_title": $(cat <<'TITLE_EOF'
+            ${{ github.event.client_payload.video_title }}
+            TITLE_EOF
+            | jq -R .),
+              "timestamp": $TIMESTAMP
+            }
+          EOF
             echo "🚀 تم تسجيل فيديو جديد في الطابور"
             
           elif [ "$EVENT_TYPE" == "update_like" ]; then
-            # كتابة بيانات اللايك في سطر واحد
             echo "{\"video_id\": \"${{ github.event.client_payload.video_id }}\", \"action\": \"${{ github.event.client_payload.action }}\", \"timestamp\": $TIMESTAMP}" > "queue/like_${{ github.event.client_payload.video_id }}_$RANDOM.json"
             echo "❤️ تم تسجيل طلب لايك في الطابور"
           fi
