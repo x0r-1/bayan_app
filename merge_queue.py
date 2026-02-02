@@ -13,7 +13,7 @@ def merge_all():
         return
 
     # --- تحميل العناوين البديلة ---
-    backup_captions = ["اذكر الله"] # القيمة الافتراضية القصوى
+    backup_captions = [" "] # القيمة الافتراضية القصوى
     if os.path.exists(captions_file):
         with open(captions_file, 'r', encoding='utf-8') as f:
             try:
